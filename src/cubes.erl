@@ -277,11 +277,11 @@ perms_test() ->
 smallest_error_test() ->
     {'EXIT', {function_clause, _StackTrace}} = (catch smallest(0)).
 
-smallest_test() ->
-    1        = smallest(1),
-    125      = smallest(2),
-    41063625 = smallest(3),
-    _        = smallest(4).
-    _        = smallest(5).
+smallest_test_() ->
+    [
+     ?_assertEqual(1,   smallest(1)),
+     ?_assertEqual(125, smallest(2)),
+     {timeout, 15, ?_assertEqual(41063625, smallest(3))}
+    ].
 
 -endif.

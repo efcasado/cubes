@@ -39,10 +39,12 @@
 %% @end
 %%-------------------------------------------------------------------------
 -spec smallest(pos_integer()) -> pos_integer().
+smallest(1) ->
+    1;
 smallest(N) when N > 0 ->
     init_cache(),
-    Digits  = [1| lists:duplicate(N * (N - 1), 0)],
-    Num     = from_digits(Digits),
+    Digits = [1| lists:duplicate(N, 0)],
+    Num    = from_digits(Digits),
     '_smallest'(round(cbrt(Num)), N).
 
 '_smallest'(Num0, N) ->
@@ -281,7 +283,7 @@ smallest_test_() ->
     [
      ?_assertEqual(1,   smallest(1)),
      ?_assertEqual(125, smallest(2)),
-     {timeout, 15, ?_assertEqual(41063625, smallest(3))}
+     {timeout, 10, ?_assertEqual(41063625, smallest(3))}
     ].
 
 -endif.

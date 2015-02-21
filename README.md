@@ -5,13 +5,13 @@ Find the smallest cube for which exactly `N` permutations of its digits are cube
 
 ```erlang
 cubes:smallest(1).
-# => 1
+% => 1
 
 cubes:smallest(2).
-# => 125
+% => 125
 
 cubes:smallest(3).
-# => 41063625
+% => 41063625
 ```
 
 > When computing the permutations, all permutations starting with a 0

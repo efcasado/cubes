@@ -42,15 +42,42 @@ cubes:smallest(3).
 | `cubes:smallest(5)` #2               | 127035954683             | 4.39 seconds    |
 
 
+The table above illustrates the results I have obtained with the two solutions I
+implemented for this exercise.
+
+My first solution consisted in a brute-force approach. I would iterate over a
+sequence of cubes (1, 8, 27, etc.), computing all the permutations and checking
+whether that cube had exactly `N` permutations of its digits which were also
+cubes. This solution seemed to work for the example provided with the exercise.
+However, I soon realised that I was not going to be able to solve the exercise
+for values of `N` larger than `3` using this approach. Before giving up on this
+approach, I tried to optimise it (implementing a naive memoisation mechanism),
+but even if the latency got reduced, I was not able to solve the exercise yet.
+The problem was in the function calculating the permutations, which was not
+tail-recursive.
+
+I then attempted to solve the exercise without having to resort to computing
+all the permutations of every cube. This led me to my second solution to this
+exercise (identified by `#2` in the table above). This solution is, in fact,
+more CPU and memory friendly than the first one. Most importantly, this second
+approach can be used the solve the exercise when `N` equals to `5`.
+
 ### How-To
 
 ##### Build the project
 
 ```
-make
+git clone https://github.com/efcasado/cubes efcasado-cubes
+cd efcasado-cubes && make
 ```
 
 ##### Run the tests
+
+The project ships with some unit tests, which are implemented in the `cubes.erl`
+module itself.
+
+These tests can be executed running `eunit:test(cubes)`. Alternatively, one can
+trigger them using the provided `Makefile`.
 
 ```
 make test

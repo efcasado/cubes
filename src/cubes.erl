@@ -20,7 +20,7 @@
 -ifdef(TEST).
 -compile(export_all).
 -else.
--export([smallest/1, clear_cache/0]).
+-export([smallest/1]).
 -endif.
 
 %% Type definitions
@@ -42,100 +42,107 @@
 smallest(1) ->
     1;
 smallest(N) when N > 0 ->
-    init_cache(),
-    Digits = [1| lists:duplicate(N, 0)],
-    Num    = from_digits(Digits),
-    '_smallest'(round(cbrt(Num)), N).
+    '_smallest'(1, #{}, N).
 
-'_smallest'(Num0, N) ->
-    Num = cube(Num0),
-    Digits = to_digits(Num),
-    Perms  = perms(Digits),
-    cache(Digits, Perms),
-    Perms1 = [ from_digits(P) || P <- Perms ],
-    case cubes(Perms1) of
-        N -> Num;
-        _ -> '_smallest'(Num0 + 1, N)
+'_smallest'(Num, Acc, N) ->
+    Cube      = cube(Num),
+    Digits    = to_digits(Cube),
+    NDigits   = ndigits(Cube),
+    PrevCubes = maps:get(NDigits, Acc, []),
+    Acc1      = maps:put(NDigits, [Digits| PrevCubes], Acc),
+    case length(PrevCubes) >= (N - 1) of
+        false ->
+            '_smallest'(Num + 1, Acc1, N);
+        true  ->
+            Perms = perms(Digits, PrevCubes),
+            case length(Perms) == N of
+                false ->
+                    '_smallest'(Num + 1, Acc1, N);
+                true  ->
+                    [H| _] = lists:usort(Perms),
+                    from_digits(H)
+            end
     end.
 
 
 %%=========================================================================
-%% Local functions
+%%  Local functions
 %%=========================================================================
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Given a list of integers, count the number of cubes.
-%% @end
-%%-------------------------------------------------------------------------
--spec cubes(list(integer())) -> non_neg_integer().
-cubes(List) ->
-    lists:foldl(fun(Number, Count) ->
-                        case is_cube(Number) of
-                            true  ->
-                                Count + 1;
-                            false ->
-                                Count
-                        end
-                end,
-                0,
-                List).
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% Compute all the permutations for the provided list of digits.
+%% Given the digits of a number and a list of digits of other numbers,
+%% return a list consisting in the digits of those numbers whose digits are
+%% permutations of the original number (including the original number).
 %%
 %% Example:
-%%     perms([1,2,3]) -> [ [1, 2, 3], [2, 3, 1], [3, 1, 2] ]
+%%   perms([1,2], [ [2,1], [1,1], [2,2] ]) -> [ [1,2], [2,1] ]
 %% @end
 %%-------------------------------------------------------------------------
--spec perms(digits()) -> list(digits()).
-perms(Digits) ->
-    [ P || P <- lists:usort('_perms'(Digits)), 0 =/= hd(P) ].
+-spec perms(digits(), list(digits())) -> list(digits()).
+perms(Cube, Cubes) ->
+    [Cube| lists:filter(fun(C) -> is_perm(Cube, C) end, Cubes)].
 
-'_perms'([]) ->
-    [ [] ];
-'_perms'(Ds) ->
-    case cached(Ds) of
+%%-------------------------------------------------------------------------
+%% @doc
+%% Given two lists of digits, check if one is a permutation of the
+%% other.
+%%
+%% Example:
+%%   is_perm([1,2,5], [5,1,2]) -> true
+%%   is_perm([1,2,5], [5,1,1]) -> false
+%% @end
+%%-------------------------------------------------------------------------
+-spec is_perm(digits(), digits()) -> boolean().
+is_perm([], []) ->
+    true;
+is_perm([], _) ->
+    false;
+is_perm(_, []) ->
+    false;
+is_perm(_D1 = [H1| T1], D2) ->
+    case lists:member(H1, D2) of
         false ->
-            Perms = [ [H| T] || H <- Ds, T <- '_perms'(Ds -- [H]) ],
-            cache(Ds, Perms),
-            Perms;
-        {true, Perms} ->
-            Perms
+            false;
+        true  ->
+            is_perm(T1, D2 -- [H1])
     end.
 
-%%-------------------------------------------------------------------------
+
+%%------------------------------------------------------------------------
 %% @doc
-%% Convert the provided non-negative integer into a list of digits.
+%% Return the number of digits the provided number consists in.
 %% @end
-%%-------------------------------------------------------------------------
--spec to_digits(non_neg_integer()) -> list(digit()).
-to_digits(Integer) ->
-    [ D - 48 || D <- integer_to_list(Integer) ].
+%%------------------------------------------------------------------------
+-spec ndigits(pos_integer()) -> pos_integer().
+ndigits(Num) when Num > 0 ->
+    %% Drop leading zeros, if any
+    length(lists:dropwhile(fun(H) -> H == 0 end, to_digits(Num))).
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Convert the provided list of digits into an integer.
-%% @end
-%%-------------------------------------------------------------------------
--spec from_digits(nonempty_list(digit())) -> integer().
-from_digits(List) when length(List) =/= 0 ->
-    %% Conver its digit to its ASCII representation
-    List1 = [ D + 48 || D <- List ],
-    list_to_integer(List1).
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% Return true if the provided positive integer is cube.
+%% Convert the provided number into a list of digits.
 %%
-%% A positive integer is considered cube if its cube root is an integer.
+%% Example:
+%%   to_digits(1987) -> [1, 9, 8, 7]
 %% @end
 %%-------------------------------------------------------------------------
--spec is_cube(pos_integer()) -> boolean().
-is_cube(N) ->
-    CubicRoot = cbrt(N),
-    cube(ceil(CubicRoot)) == N.
+-spec to_digits(non_neg_integer()) -> digits().
+to_digits(Num) ->
+    [ D - 48 || D <- integer_to_list(Num) ].
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Convert the provided list of digits into a number.
+%%
+%% Example:
+%%   from_digits([1, 9, 8, 7]) -> 1987
+%% @end
+%%-------------------------------------------------------------------------
+-spec from_digits(digits()) -> non_neg_integer().
+from_digits(Digits) when length(Digits) /= 0 ->
+    list_to_integer([ D + 48 || D <- Digits ]).
+
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -146,144 +153,76 @@ is_cube(N) ->
 cube(N) ->
     N * N * N.
 
-%%-------------------------------------------------------------------------
-%% @doc
-%% Compute the cube root of the provided positive integer.
-%% @end
-%%-------------------------------------------------------------------------
--spec cbrt(non_neg_integer()) -> float().
-cbrt(N) when N >= 0 ->
-    %% The cube root of a number X can also be expressed as X^(1/3).
-    math:pow(N, 1/3).
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% Return the smallest integer greater than or equal to the provided
-%% floating point number.
-%% @end
-%%-------------------------------------------------------------------------
--spec ceil(float()) -> integer().
-ceil(Float) when is_float(Float) andalso Float < 0 ->
-    trunc(Float);
-ceil(Float) when is_float(Float) ->
-    T = trunc(Float),
-    case Float - T of
-        0.0 -> T;
-        _   -> T + 1
-    end.
-
 
 %%=========================================================================
-%% Memoization
+%%  Unit tests
 %%=========================================================================
 
--spec init_cache() -> 'ok'.
-init_cache() ->
-    case catch ets:new(cache, [named_table]) of
-        cache ->
-            ok;
-        {'EXIT', {badarg, _StackTrace}} ->
-            ok
-    end.
-
--spec clear_cache() -> 'ok'.
-clear_cache() ->
-    case catch ets:delete(cache) of
-        true  ->
-            ok;
-        false ->
-            ok;
-        {'EXIT', {badarg, _StackTrace}} ->
-            ok
-    end.
-
--spec cache(digits(), list(digits())) -> 'ok'.
-cache(Digits, Perms) ->
-    ets:insert(cache, {Digits, Perms}),
-    ok.
-
--spec cached(digits()) -> {'true', list(digits())} | 'false'.
-cached(Digits) ->
-    case ets:lookup(cache, Digits) of
-        [] ->
-            false;
-        [{Digits, Perms}] ->
-            {true, Perms}
-    end.
-
-
-%%=========================================================================
-%% Unit tests
-%%=========================================================================
-
-%% If this modules was compiled with the `-DTEST` macro, all unit tests can
-%% be executed running `eunit:test(cubes, [verbose])`.
+%% Unit tests are also included in the module if the macro `TEST` is
+%% defined at compile time (i.e., erlc -DTEST ...).
 
 -ifdef(TEST).
 
-to_digits_test() ->
-    [0]        = to_digits(0),
-    [1, 2, 3]  = to_digits(123).
+cube_test_() ->
+    [
+     ?_assertEqual(1,  cube(1)),
+     ?_assertEqual(8,  cube(2)),
+     ?_assertEqual(27, cube(3))
+    ].
 
-from_digits_error_test() ->
-    {'EXIT', {function_clause, _StackTrace}} = (catch from_digits([])).
+from_digits_error_test_() ->
+    [
+     ?_assertMatch({'EXIT', {function_clause, _StackTrace}}, catch from_digits([]))
+    ].
 
-from_digits_test() ->
-    0   = from_digits([0]),
-    123 = from_digits([1, 2, 3]).
+from_digits_test_() ->
+    [
+     ?_assertEqual(1,  from_digits([1])),
+     ?_assertEqual(1,  from_digits([0,1])),
+     ?_assertEqual(10, from_digits([1,0]))
+    ].
 
-ceil_error_test() ->
-    {'EXIT', {function_clause, _StackTrace}} = (catch ceil(1)).
+to_digits_test_() ->
+    [
+     ?_assertEqual([1],   to_digits(1)),
+     ?_assertEqual([1,0], to_digits(10))
+    ].
 
-ceil_test() ->
-    1  = ceil( 1.0),
-    1  = ceil( 1.00),
-    %% We do not have enough precision so this floating point number gets
-    %% converted to 1.0 at compile time.
-    1  = ceil( 1.0000000000000000000000000000000000000000000000000001),
-    %% We do not have enough precision so this floating point number gets
-    %% converted to 1.1 at compile time.
-    2 = ceil( 1.1000000000000000000000000000000000000000000000000001),
-    2 = ceil( 1.00001),
-    2 = ceil( 1.1),
-    2 = ceil( 1.9),
-   -1 = ceil(-1.0),
-   -1 = ceil(-1.00),
-    %% We do not have enough precision so this floating point number gets
-    %% converted to -1.0 at compile time.
-   -1  = ceil(-1.0000000000000000000000000000000000000000000000000001),
-    %% We do not have enough precision so this floating point number gets
-    %% converted to -1.1 at compile time.
-   -1 = ceil(-1.1000000000000000000000000000000000000000000000000001),
-   -1 = ceil(-1.00001),
-   -1 = ceil(-1.1),
-   -1 = ceil(-1.9).
+ndigits_test_() ->
+    [
+     ?_assertEqual(1, ndigits(1)),
+     ?_assertEqual(2, ndigits(10)),
+     ?_assertEqual(3, ndigits(101))
+    ].
 
-is_cube_test() ->
-    true  = is_cube(0),
-    true  = is_cube(1),
-    false = is_cube(2),
-    false = is_cube(3),
-    true  = is_cube(8),
-    true  = is_cube(27),
-    true  = is_cube(64),
-    false = is_cube(175615),
-    true  = is_cube(175616),
-    false = is_cube(175617).
+is_perm_test_() ->
+    [
+     ?_assert(   is_perm([1,2,5], [5,2,1])),
+     ?_assert(   is_perm([1,2,5], [5,1,2])),
+     ?_assert(   is_perm([1,2,5], [1,5,2])),
+     ?_assert(   is_perm([1,2,5], [1,2,5])),
+     ?_assert(   is_perm([1,2,5], [2,1,5])),
+     ?_assert(   is_perm([1,2,5], [2,5,1])),
+     ?_assertNot(is_perm([1,2,5], [1])),
+     ?_assertNot(is_perm([1,2,5], [2])),
+     ?_assertNot(is_perm([1,2,5], [5])),
+     ?_assertNot(is_perm([1,2,5], [1,2]))
+    ].
 
-
-perms_test() ->
-    init_cache(),
-    [ [1,2], [2,1] ] = perms([1,2]).
-
-smallest_error_test() ->
-    {'EXIT', {function_clause, _StackTrace}} = (catch smallest(0)).
+perms_test_() ->
+    [
+     ?_assertEqual(
+        [ [1,2], [2,1] ],
+        perms([1,2], [ [1], [2], [1,1], [2,2], [2,1] ]))
+    ].
 
 smallest_test_() ->
     [
-     ?_assertEqual(1,   smallest(1)),
-     ?_assertEqual(125, smallest(2)),
-     {timeout, 10, ?_assertEqual(41063625, smallest(3))}
+      ?_assertEqual(1,            smallest(1)),
+      ?_assertEqual(125,          smallest(2)),
+      ?_assertEqual(41063625,     smallest(3)),
+      ?_assertEqual(1006012008,   smallest(4)),
+      ?_assertEqual(127035954683, smallest(5))
     ].
 
 -endif.

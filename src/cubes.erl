@@ -42,17 +42,25 @@
 smallest(1) ->
     1;
 smallest(N) when N > 0 ->
-    '_smallest'(1, #{}, N).
+    '_smallest'(1, #{}, N, 1).
 
-'_smallest'(Num, Acc, N) ->
-    Cube           = cube(Num),
-    Digits         = to_digits(Cube),
-    {Perms = [P| _], Acc1} = perms(Digits, Acc),
+'_smallest'(Num, Acc, N, PrevNDigits) ->
+    Cube    = cube(Num),
+    Digits  = to_digits(Cube),
+    NDigits = length(Digits),
+    Acc1    =
+        case NDigits > PrevNDigits of
+            true  ->
+                #{};
+            false ->
+                Acc
+        end,
+    {Perms = [P| _], Acc2} = perms(Digits, Acc1),
     case length(Perms) of
         N ->
             from_digits(P);
         _ ->
-            '_smallest'(Num + 1, Acc1, N)
+            '_smallest'(Num + 1, Acc2, N, NDigits)
     end.
 
 %%=========================================================================

@@ -69,8 +69,8 @@ more CPU and memory friendly than the first one. Most importantly, this second
 approach can be used the solve the exercise when `N` equals to `5`.
 
 An optimised version of the second approach is also available. The optimised
-version (identified by `#2 (optimised)` in the table avoce) features a
-`4.93`x speedup over the non-optimised version.
+version (identified by `#2 (optimised)` in the table above) features a
+**4.93x speedup** over the non-optimised version.
 
 ### How-To
 

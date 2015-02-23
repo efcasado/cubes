@@ -40,6 +40,12 @@ cubes:smallest(3).
 | `cubes:smallest(3)` #2               | 41063625                 | 0.01 seconds    |
 | `cubes:smallest(4)` #2               | 1006012008               | 0.19 seconds    |
 | `cubes:smallest(5)` #2               | 127035954683             | 4.39 seconds    |
+| `cubes:smallest(1)` #2 (optimised)   | 1                        | 6.0E-6 seconds  |
+| `cubes:smallest(2)` #2 (optimised)   | 125                      | 2.2E-5 seconds  |
+| `cubes:smallest(3)` #2 (optimised)   | 41063625                 | 0.004 seconds   |
+| `cubes:smallest(4)` #2 (optimised)   | 1006012008               | 0.05 seconds    |
+| `cubes:smallest(5)` #2 (optimised)   | 127035954683             | 0.89 seconds    |
+
 
 
 The table above illustrates the results I have obtained with the two solutions I
@@ -61,6 +67,10 @@ all the permutations of every cube. This led me to my second solution to this
 exercise (identified by `#2` in the table above). This solution is, in fact,
 more CPU and memory friendly than the first one. Most importantly, this second
 approach can be used the solve the exercise when `N` equals to `5`.
+
+An optimised version of the second approach is also available. The optimised
+version (identified by `#2 (optimised)` in the table avoce) features a
+`4.93`x speedup over the non-optimised version.
 
 ### How-To
 

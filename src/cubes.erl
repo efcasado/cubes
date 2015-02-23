@@ -45,25 +45,15 @@ smallest(N) when N > 0 ->
     '_smallest'(1, #{}, N).
 
 '_smallest'(Num, Acc, N) ->
-    Cube      = cube(Num),
-    Digits    = to_digits(Cube),
-    NDigits   = ndigits(Cube),
-    PrevCubes = maps:get(NDigits, Acc, []),
-    Acc1      = maps:put(NDigits, [Digits| PrevCubes], Acc),
-    case length(PrevCubes) >= (N - 1) of
-        false ->
-            '_smallest'(Num + 1, Acc1, N);
-        true  ->
-            Perms = perms(Digits, PrevCubes),
-            case length(Perms) == N of
-                false ->
-                    '_smallest'(Num + 1, Acc1, N);
-                true  ->
-                    [H| _] = lists:usort(Perms),
-                    from_digits(H)
-            end
+    Cube           = cube(Num),
+    Digits         = to_digits(Cube),
+    {Perms = [P| _], Acc1} = perms(Digits, Acc),
+    case length(Perms) of
+        N ->
+            from_digits(P);
+        _ ->
+            '_smallest'(Num + 1, Acc1, N)
     end.
-
 
 %%=========================================================================
 %%  Local functions
@@ -71,53 +61,19 @@ smallest(N) when N > 0 ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Given the digits of a number and a list of digits of other numbers,
-%% return a list consisting in the digits of those numbers whose digits are
-%% permutations of the original number (including the original number).
-%%
-%% Example:
-%%   perms([1,2], [ [2,1], [1,1], [2,2] ]) -> [ [1,2], [2,1] ]
+%% Given the digits of a cube and a map containing the digits of previously
+%% analysed cubes, store the cube in the map and return and updated version
+%% of the map along with a (sorted) list of the previously analysed cubes
+%% whose digits are a permutation of the given cube.
 %% @end
 %%-------------------------------------------------------------------------
--spec perms(digits(), list(digits())) -> list(digits()).
-perms(Cube, Cubes) ->
-    [Cube| lists:filter(fun(C) -> is_perm(Cube, C) end, Cubes)].
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% Given two lists of digits, check if one is a permutation of the
-%% other.
-%%
-%% Example:
-%%   is_perm([1,2,5], [5,1,2]) -> true
-%%   is_perm([1,2,5], [5,1,1]) -> false
-%% @end
-%%-------------------------------------------------------------------------
--spec is_perm(digits(), digits()) -> boolean().
-is_perm([], []) ->
-    true;
-is_perm([], _) ->
-    false;
-is_perm(_, []) ->
-    false;
-is_perm(_D1 = [H1| T1], D2) ->
-    case lists:member(H1, D2) of
-        false ->
-            false;
-        true  ->
-            is_perm(T1, D2 -- [H1])
-    end.
-
-
-%%------------------------------------------------------------------------
-%% @doc
-%% Return the number of digits the provided number consists in.
-%% @end
-%%------------------------------------------------------------------------
--spec ndigits(pos_integer()) -> pos_integer().
-ndigits(Num) when Num > 0 ->
-    %% Drop leading zeros, if any
-    length(lists:dropwhile(fun(H) -> H == 0 end, to_digits(Num))).
+-spec perms(digits(), map()) -> {list(digits()), map()}.
+perms(Digits, Acc) ->
+    SortedDigits = lists:sort(Digits),
+    Cubes1       = maps:get(SortedDigits, Acc, []),
+    Cubes2       = lists:sort([Digits| Cubes1]),
+    Acc1         = maps:put(SortedDigits, Cubes2, Acc),
+    {Cubes2, Acc1}.
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -142,7 +98,6 @@ to_digits(Num) ->
 -spec from_digits(digits()) -> non_neg_integer().
 from_digits(Digits) when length(Digits) /= 0 ->
     list_to_integer([ D + 48 || D <- Digits ]).
-
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -186,34 +141,6 @@ to_digits_test_() ->
     [
      ?_assertEqual([1],   to_digits(1)),
      ?_assertEqual([1,0], to_digits(10))
-    ].
-
-ndigits_test_() ->
-    [
-     ?_assertEqual(1, ndigits(1)),
-     ?_assertEqual(2, ndigits(10)),
-     ?_assertEqual(3, ndigits(101))
-    ].
-
-is_perm_test_() ->
-    [
-     ?_assert(   is_perm([1,2,5], [5,2,1])),
-     ?_assert(   is_perm([1,2,5], [5,1,2])),
-     ?_assert(   is_perm([1,2,5], [1,5,2])),
-     ?_assert(   is_perm([1,2,5], [1,2,5])),
-     ?_assert(   is_perm([1,2,5], [2,1,5])),
-     ?_assert(   is_perm([1,2,5], [2,5,1])),
-     ?_assertNot(is_perm([1,2,5], [1])),
-     ?_assertNot(is_perm([1,2,5], [2])),
-     ?_assertNot(is_perm([1,2,5], [5])),
-     ?_assertNot(is_perm([1,2,5], [1,2]))
-    ].
-
-perms_test_() ->
-    [
-     ?_assertEqual(
-        [ [1,2], [2,1] ],
-        perms([1,2], [ [1], [2], [1,1], [2,2], [2,1] ]))
     ].
 
 smallest_test_() ->
